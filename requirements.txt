@@ -1,0 +1,5 @@
+Django==3.0.5
+kubernetes==18.20.0
+channels==2.4.0
+channels-redis==2.4.0
+PyMySQL==1.0.2
