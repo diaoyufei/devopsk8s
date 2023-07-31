@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+{% block title %}DaemonSets{% endblock %}
+{% block nav-item-2 %}layui-nav-itemed{% endblock %}
+{% block nav-this-2-2 %}layui-this{% endblock %}
+{% block content %}
+<div class="layui-card">
+    <div class="layui-card-body">
+
+        <div class="layui-row">
+            <div class="layui-col-md12">
+                <button class="layui-btn" style="float: left">创建</button>
+                <input type="text" name="name" class="layui-input" style="width: 150px;float: left;margin-left: 20px">
+                <button class="layui-btn" style="float: left" id="searchBtn">搜索</button>
+            </div>
+        </div>
+        <div class="layui-col-md12">
+            <table class="layui-hide" id="test" lay-filter="test"></table>
+            <script type="text/html" id="barDemo">
+              <a class="layui-btn layui-btn-xs layui-btn-primary" lay-event="yaml">YAML</a>
+              <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">删除</a>
+            </script>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+
+{#获取当前命名空间#}
+var storage = window.sessionStorage;
+var namespace = storage.getItem("namespace");
+
+layui.use('table', function(){
+  var table = layui.table;
+  var $ = layui.jquery
+
+  // 创建渲染实例
+  table.render({
+    elem: '#test'
+    ,url:'{% url 'daemonset_api' %}?namespace=' + namespace // 此处为静态模拟数据，实际使用时需换成真实接口
+    ,toolbar: '#toolbarDemo'
+    ,defaultToolbar: ['filter', 'exports', 'print', {
+      title: '提示'
+      ,layEvent: 'LAYTABLE_TIPS'
+      ,icon: 'layui-icon-tips'
+    }]
+    ,title: '用户数据表'
+    ,cols: [[
+      {field:'name', title:'名称', sort: true}
+      ,{field: 'namespace', title: '命名空间', sort: true}
+      ,{field: 'desired_number', title: '预期节点数', width: 100}
+      ,{field: 'available_number', title: '可用节点数', width: 100}
+      ,{field: 'labels', title: '标签', templet: labelsFormat}
+      ,{field: 'selector', title: 'Pod标签选择器', templet: selecotrFormat}
+      ,{field: 'containers', title: '容器', templet: containersFormat}
+      ,{field:'create_time', title:'创建时间', width: 200}
+      ,{fixed:'right', title:'操作', toolbar: '#barDemo', width: 150}
+    ]]
+    ,page: true
+    ,id: 'dstb'
+  });
+
+    // 标签格式化，是一个对象
+    function labelsFormat(d){
+      result = "";
+      if (d.labels == null){
+          return "None"
+      } else {
+          for (let key in d.labels) {
+              result += '<span style="border: 1px solid #d6e5ec;border-radius: 8px">' +
+                  key + ':' + d.labels[key] +
+                  '</span><br>'
+          }
+          return result
+      }
+    }
+
+    function selecotrFormat(d){
+        result = "";
+        for(let key in d.selector) {
+            result += '<span style="border: 1px solid #d6e5ec;border-radius: 8px">' +
+                  key + ':' + d.selector[key] +
+                  '</span><br>'
+        }
+        return result
+    }
+
+    function containersFormat(d) {
+        result = "";
+        for(let key in d.containers) {
+            result += key + '=' + d.containers[key] + '<br>'
+        }
+        return result
+    }
+
+  //监听工具事件
+  table.on('tool(test)', function(obj){ // 双击 toolDouble
+    var data = obj.data;
+    //console.log(obj)
+    if(obj.event === 'del'){
+      layer.confirm('真的删除' + data["name"] + "这个Daemonset吗?", function(index){
+          csrf_token = $('[name="csrfmiddlewaretoken"]').val();
+        $.ajax({
+            url: '{% url 'daemonset_api' %}',
+            type: "DELETE",
+            data: data,
+            headers: {"X-CSRFToken": csrf_token},
+            success: function (res) {
+                if (res.code == 0) {
+                    layer.msg(res.msg, {icon: 6});
+                    obj.del()
+                }  else {
+                    layer.msg(res.msg, {icon: 5})
+                }
+            },
+            error: function () {
+                layer.msg("服务接口异常", {icon: 5})
+            }
+        })
+      });
+    } else if(obj.event === 'yaml'){
+        layer.open({
+            title: 'YAML',
+            type: 2,
+            area: ['50%', '60%'],
+            content: "{% url 'ace_editor' %}?resource=daemonset&" + 'namespace=' + data['namespace'] + '&name=' + data['name'],
+        })
+    }
+  });
+    // 监听搜索按钮事件
+
+    $("#searchBtn").click(function () {
+        var search_key = $("input[name='name']").val()
+        {#console.log(search_key)#}
+        // 重载 - 这里以搜索为例
+        table.reload('dstb', {
+          where: { //设定异步数据接口的额外参数，任意设
+            search_key: search_key
+          }
+          ,page: {
+            curr: 1 //重新从第 1 页开始
+          }
+        });
+    })
+
+});
+</script>
+
+{% endblock %}

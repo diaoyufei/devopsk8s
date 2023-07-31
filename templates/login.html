@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>登录</title>
+    <script type="text/javascript" src="https://cdn.bootcdn.net/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <style>
+        /* 整个内容区 */
+        body {
+            background-color: #edeff0;
+        }
+        .a {
+            width: 900px;
+            height: 400px;
+            background-color: white;
+            /* 定位到中间 */
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            margin: auto;
+            /* 添加阴影 */
+            box-shadow: 0 2px 1px -1px rgba(0,0,0,.2), 0 1px 1px 0 rgba(0,0,0,.14), 0 1px 3px 0 rgba(0,0,0,.12);
+        }
+        /* 头部蓝色背景 */
+        .c {
+            height: 60px;
+            width: 900px;
+            background-color: #326de6;
+            color: white;
+            font-size: 20px;
+        }
+        /* 头部蓝色中文字向右移动并居中*/
+        .c p {
+            padding-left: 300px;
+            padding-top: 12px;
+            font-weight: bold;
+            font-size: 26px;
+            letter-spacing: 1px;
+        }
+        /* 所有文字右、下移 */
+        .d,.e,.f,.g {
+            padding-left: 300px;
+        }
+
+        /* 给选择按钮加超链接并加粗 */
+        .d a, .e a {
+            font-weight: bold;
+            font-size: 18px;
+            text-decoration: none;
+        }
+        /* 超链接显示处理 */
+        a:active, a:link, a:visited, a:hover {color: black}
+        /* 文字左、右向内靠拢 */
+        .p {
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+        /* 实心圆外面圆 */
+        .s {
+            display: block;
+            width: 18px;
+            height: 18px;
+            border-radius: 20px;
+            border: 2px solid gray;
+            float: left;  /* 与Token水平 */
+            margin-right: 10px;
+        }
+        /* 实心圆 */
+        .ss {
+            display: block;
+            width: 10px;
+            height: 10px;
+            background-color: #326de6;
+            border-radius: 20px;
+            border: 2px solid white;
+            /* 上、左移动，让实心圆居中 */
+            position: relative;
+            top: 13%;
+            left: 10%;
+        }
+        .f, .g {
+            display: none;  /* 默认两个input隐藏 */
+        }
+        .f input {
+            width: 500px;
+            height: 25px;
+            border-style: none;
+            border-bottom: 1px solid black;
+            outline: none;  /* 点击输入框不显示外边框 */
+            margin-top: 10px;
+            margin-left: 10px;
+        }
+        .g input {
+            margin-top: 10px;
+            margin-left: 10px;
+            color: gray;
+            outline: none;
+        }
+        #btn {
+            height: 50px;
+            width: 150px;
+            margin-left: 400px;
+            margin-top: 40px;
+            border-style: none;
+            font-size: 22px;
+            background-color: #326de6;
+            color: white;
+            padding: 8px 15px 8px 15px;
+            outline: none;
+            box-shadow: 0 2px 1px -1px rgba(0,0,0,.2), 0 1px 1px 0 rgba(0,0,0,.14), 0 1px 3px 0 rgba(0,0,0,.12);
+        }
+        #btn:hover {
+            cursor: pointer;
+        }
+
+    </style>
+</head>
+<body>
+{% csrf_token %}
+<div class="a">
+    <div class="b">
+        <div class="c">
+            <p>欢迎访问Kubernetes管理平台</p>
+        </div>
+        <div>
+            <div class="d">
+                <p><a href="#" id="tokenBtn"><span class="s" id="s1"><span id="ss1"></span></span>Token</a></p>
+                <p class="p"></p>
+            </div>
+            <div class="e">
+                <p><a href="#" id="kubeBtn"><span class="s" id="s2"><span id="ss2"></span></span>Kubeconfig</a></p>
+                <p class="p"></p>
+            </div>
+            <div class="f" id="token">
+                <input type="password" name="token" placeholder="输入token" >
+            </div>
+            <div class="g" id="kube">
+                <input type="file" name="kubeconfig" id="kubeconfig">
+            </div>
+            <p><button type="button" id="btn">登录</button>&nbsp;&nbsp;&nbsp;<span id="notice"></span></p>
+        </div>
+
+    </div>
+</div>
+<script type="text/javascript">
+    // 默认选中Toekn认证
+    $("#token").css("display", "inline");  // 显示输入token
+    $("#s1").css("border", "2px solid #326de6");  // 边框改为蓝色
+    $("#ss1").addClass("ss");  // 添加蓝色实心圆
+
+    $("#tokenBtn").click(function () {
+        $("#token").css("display", "inline");  // 显示输入token
+        $("#kube").css("display", "none");  // 另外一个隐藏
+
+        $("#s1").css("border", "2px solid #326de6");  // 边框改为蓝色
+        $("#s2").css("border", "2px solid gray");  // 另外一个，边框改为灰色
+
+        $("#ss1").addClass("ss");  // 添加蓝色实心圆
+        $("#ss2").removeClass("ss");  // 去掉蓝色实心圆
+    });
+    $("#kubeBtn").click(function () {
+        $("#kube").css("display", "inline");   // 显示选择文件框
+        $("#token").css("display", "none");  // 另外一个隐藏
+
+        $("#s1").css("border", "2px solid gray");  // 另外一个，边框改为蓝灰色
+        $("#s2").css("border", "2px solid #326de6");  // 边框改为蓝色
+
+        $("#ss2").addClass("ss");  // 添加蓝色实心圆
+        $("#ss1").removeClass("ss");  // 去掉蓝色实心圆
+    });
+    $("#btn").click(function () {
+        var csrf_token = $('[name="csrfmiddlewaretoken"]').val();
+        // 判断选择的认证方式，即有实心圆类
+        if ($("#ss1").hasClass("ss")) {
+            var token = $("input[name='token']").val();
+            // 判断输入是否为空
+            if (! token) {
+                $("#notice").html("请输入Token！").css("color", "red");
+                return
+            }
+            var data = {'token': token, 'csrfmiddlewaretoken': csrf_token};
+            $.ajax({
+                type: "POST",
+                url: "/login/",
+                timeout: 5000,
+                dataType: "json",
+                data: data,
+                success: function(res) {
+                    if (res.code == 0) {
+                        location.href = "/"
+                    } else if (res.code == 1){
+                        $("#notice").html(res.msg).css("color", "red");
+                    }
+                },
+                error: function (res) {
+                    $("#notice").html("服务器接口异常！").css("color", "red");
+                }
+            })
+        } else if ($("#ss2").hasClass("ss")) {
+            var fd = new FormData();
+            // var file = $("input[name='kubeconfig']")[0].files[0]);
+            var file = $("#kubeconfig")[0].files[0];
+            if (! file) {
+                $("#notice").html("请选择kubeconfig文件！").css("color", "red");
+                return
+            }
+            fd.append('file', file);
+            fd.append("csrfmiddlewaretoken", csrf_token);
+            $.ajax({
+                type: "POST",
+                url: "/login/",
+                timeout: 5000,
+                dataType: "json",
+                data: fd,
+                processData: false,
+                contentType: false,
+                success: function(res) {
+                    if (res.code == 0) {
+                        location.href = "/"
+                    } else if (res.code == 1){
+                        $("#notice").html(res.msg).css("color", "red");
+                    }
+                },
+                error: function () {
+                    $("#notice").html("服务器接口异常！").css("color", "red");
+                }
+            })
+        }
+    })
+</script>
+</body>
+</html>

@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+{% block title %}PV{% endblock %}
+{% block nav-item-1 %}layui-nav-itemed{% endblock %}
+{% block nav-this-1-3 %}layui-this{% endblock %}
+{% block content %}
+<div class="layui-card">
+    <div class="layui-card-body">
+
+        <div class="layui-row">
+            <div class="layui-col-md12">
+                <a href="{% url 'pv_create' %}" class="layui-btn" style="float: left">创建</a>
+                <input type="text" name="name" class="layui-input" style="width: 150px;float: left;margin-left: 20px">
+                <button class="layui-btn" style="float: left" id="searchBtn">搜索</button>
+            </div>
+        </div>
+        <div class="layui-col-md12">
+            <table class="layui-hide" id="test" lay-filter="test"></table>
+            <script type="text/html" id="barDemo">
+              <a class="layui-btn layui-btn-xs layui-btn-primary" lay-event="yaml">YAML</a>
+              <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">删除</a>
+            </script>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+layui.use('table', function(){
+  var table = layui.table;
+  var $ = layui.jquery
+
+  // 创建渲染实例
+  table.render({
+    elem: '#test'
+    ,url:'{% url 'pv_api' %}' // 此处为静态模拟数据，实际使用时需换成真实接口
+    ,toolbar: '#toolbarDemo'
+    ,defaultToolbar: ['filter', 'exports', 'print', {
+      title: '提示'
+      ,layEvent: 'LAYTABLE_TIPS'
+      ,icon: 'layui-icon-tips'
+    }]
+    ,title: '用户数据表'
+    ,cols: [[
+      {field:'name', title:'名称', sort: true}
+      ,{field: 'capacity', title: '容量'}
+      ,{field: 'access_modes', title: '访问模式'}
+      ,{field: 'reclaim_policy', title: '回收策略'}
+      ,{field: 'pvc', title: 'PVC(命名空间/名称)'}
+      ,{field: 'storage_class', title: '存储类'}
+      ,{field:'create_time', title:'创建时间'}
+      ,{fixed:'right', title:'操作', toolbar: '#barDemo', width: 150}
+    ]]
+    ,page: true
+    ,id: 'pvtb'
+  });
+
+    // 标签格式化，是一个对象
+    function labelsFormat(d){
+      result = "";
+      if (d.labels == null){
+          return "None"
+      } else {
+          for (let key in d.labels) {
+              result += '<span style="border: 1px solid #d6e5ec;border-radius: 8px">' +
+                  key + ':' + d.labels[key] +
+                  '</span><br>'
+          }
+          return result
+      }
+    }
+
+  //监听工具事件
+  table.on('tool(test)', function(obj){ // 双击 toolDouble
+    var data = obj.data;
+    //console.log(obj)
+    if(obj.event === 'del'){
+      layer.confirm('真的删除' + data["name"] + "这个PV吗?", function(index){
+          csrf_token = $('[name="csrfmiddlewaretoken"]').val();
+        $.ajax({
+            url: '{% url 'pv_api' %}',
+            type: "DELETE",
+            data: data,
+            headers: {"X-CSRFToken": csrf_token},
+            success: function (res) {
+                if (res.code == 0) {
+                    layer.msg(res.msg, {icon: 6});
+                    obj.del()
+                }  else {
+                    layer.msg(res.msg, {icon: 5})
+                }
+            },
+            error: function () {
+                layer.msg("服务接口异常", {icon: 5})
+            }
+        })
+      });
+    } else if(obj.event === 'yaml'){
+        layer.open({
+            title: 'YAML',
+            type: 2,
+            area: ['50%', '60%'],
+            content: "{% url 'ace_editor' %}?resource=pv&" + 'namespace=' + data['namespace'] + '&name=' + data['name'],
+        })
+    }
+  });
+    // 监听搜索按钮事件
+
+    $("#searchBtn").click(function () {
+        var search_key = $("input[name='name']").val()
+        {#console.log(search_key)#}
+        // 重载 - 这里以搜索为例
+        table.reload('pvtb', {
+          where: { //设定异步数据接口的额外参数，任意设
+            search_key: search_key
+          }
+          ,page: {
+            curr: 1 //重新从第 1 页开始
+          }
+        });
+    })
+
+});
+</script>
+
+{% endblock %}

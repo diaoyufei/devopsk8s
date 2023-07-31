@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+{% block title %}Deployments{% endblock %}
+{% block nav-item-2 %}layui-nav-itemed{% endblock %}
+{% block nav-this-2-1 %}layui-this{% endblock %}
+{% block content %}
+    <span class="layui-breadcrumb">
+      <a href="#">首页</a>
+      <a href="#">工作负载</a>
+      <a><cite>Deployments</cite></a>
+    </span>
+    <hr>
+
+    <div class="layui-card">
+       <div class="layui-card-body">
+
+       <fieldset class="layui-elem-field layui-field-title" style="margin-top: 20px;">
+           <legend>创建Deployment</legend>
+       </fieldset>
+
+       <form class="layui-form " onclick="return false">
+           <div class="layui-form-item">
+               <label class="layui-form-label">名称:</label>
+               <div class="layui-input-block">
+                   <input type="text" name="name" lay-verify="required" lay-reqtext="名称是必填项,不能为空! " placeholder="" autocomplete="off" class="layui-input">
+               </div>
+           </div>
+
+           <div class="layui-form-item">
+               <label class="layui-form-label">命名空间: </label>
+               <div class="layui-input-block">
+               <select name="namespace" lay-verify="required" id="ns">
+               </select>
+               </div>
+           </div>
+
+           <div class="layui-form-item">
+               <label class="layui-form-label">镜像: </label>
+               <div class="layui-input-block">
+                 <input type="text" name="image" lay-verify="required" lay-reqtext="镜像是必填项, 不能为空! " placeholder="" autocomplete="off" class="layui-input">
+               </div>
+           </div>
+
+
+           <div class="layui-form-item">
+               <label class="layui-form-label">副本数: </label>
+               <div class="layui-input-block">
+                 <input type="text" name="replicas" value="3" autocomplete="off" class="layui-input">
+               </div>
+           </div>
+
+           <div class="layui-form-item">
+               <label class="layui-form-label">标签: </label>
+               <div class="layui-input-block">
+                   <input type="text" name="labels" lay-verify="required" lay-reqtext="标签是必填项，不能为空!" placeholder="示例: project=ms,app=gateway" autocomplete="off" class="layui-input">
+               </div>
+           </div>
+
+           <div class="layui-form-item">
+               <label class="layui-form-label">通用配置: </label>
+               <div class="layui-input-block">
+                   <input type="radio" name="resources" value="0.5c1g" title="0.5核1G" checked="">
+                   <input type="radio" name="resources" value="1c2g" title="1核2G" checked="">
+                   <input type="radio" name="resources" value="2c4g" title="2核4G" checked="">
+                   <input type="radio" name="resources" value="4c8g" title="4核8G" checked="">
+                   <input type="radio" name="resources" title="自定义" disabled="">
+               </div>
+           </div>
+
+           <div class="layui-form-item">
+               <label class="layui-form-label">健康检查: </label>
+               <div class="layui-input-block">
+                   <input type="checkbox" name="health[liveness]" title="存活检查">
+                   <input type="checkbox" name="health[readiness]" title="就绪检查">
+               </div>
+           </div>
+
+           <div class="layui-form-item">
+               <div class="layui-input-block">
+                   <button type="submit" class="layui-btn" lay-submit="" lay-filter="btn">立即提交</button>
+                   <button type="reset" class="layui-btn layui-btn-primary">重置</button>
+               </div>
+           </div>
+
+       </form>
+
+       </div>
+    </div>
+
+
+
+{% endblock %}
+
+
+{% block js %}
+<script>
+var storage = window.sessionStorage;
+var namespace = storage.getItem("namespace");
+
+layui.use(['table','form','layer'], function(){
+  var table = layui.table;
+  var layer = layui.layer;
+  var form = layui.form;
+  var $ = layui.jquery;
+
+  $('#ns').append('<option value=' + namespace + '>' + namespace + '</option>');
+  form.render();
+
+  // 监听提交
+  form.on('submit(btn)', function (data) {
+      {#console.log(data.field)#}
+      data = data.field
+      csrf_token = $('[name="csrfmiddlewaretoken"]').val();
+      data['csrfmiddlewaretoken'] = csrf_token;
+        $.ajax({
+            url: '{% url 'deployment_api' %}',
+            type: "POST",
+            data: data,
+            success: function (res) {
+                if (res.code == 0) {
+                    layer.msg(res.msg, {icon: 6});
+                } else {
+                    layer.msg(res.msg, {icon: 5})
+                }
+            },
+            error: function () {
+                layer.msg("服务器接口异常", {icon: 5})
+            }
+        })
+  })
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,54 @@
+<link rel="stylesheet" href="/static/layui/css/layui.css">
+<!--必须设置高度，否则无法显示-->
+<div id="code-editor" style="height: 98%;width: 98%"></div>
+
+<script src="/static/ace/ace.js" type="text/javascript" charset="utf-8"></script>
+<script src="/static/ace/theme/theme-chrome.js" type="text/javascript" charset="utf-8"></script>
+<script src="/static/ace/mode/mode-yaml.js" type="text/javascript" charset="utf-8"></script>
+<script src="/static/layui/layui.js"></script>
+{% csrf_token %}
+<script>
+    //初始化对象
+    var editor = ace.edit("code-editor");
+
+    //设置编辑器样式，对应theme-*.js文件   个人：看到的设置的chrome谷歌浏览器滴喔.
+    editor.setTheme("ace/theme/chrome")
+    //设置代码语言, 对应mode-*.js文件
+    editor.session.setMode("ace/mode/yaml");
+    //设置打印线是否显示
+    editor.setShowPrintMargin(false);
+    //字体大小
+    editor.setFontSize(16);
+    //设置只读(true时只读,用于展示代码)
+    editor.setReadOnly(false);
+
+    layui.use(['layer'], function () {
+       var $ = layui.jquery;
+       layer = layui.layer;           // 获取到使用的组件
+
+       // 后端传: 命名空间，资源，名称。 传过来的不是json对象，要转换
+       var namespace = "{{ data.namespace }}";
+       var resource = "{{ data.resource }}";
+       var name = "{{ data.name }}";
+
+       $.ajax({
+           url: '{% url "export_resource_api" %}?' + 'namespace=' + namespace + '&resource=' + resource + "&name=" + name,
+           type: 'GET',
+           // 提交成功回调函数
+           success: function (res) {
+               if(res.code == '0') {
+                   editor.setValue(res.data);       // 设置编辑内容
+               } else {
+                   layer.msg(res.msg, {icon: 5})
+               }
+           },
+           // 访问接口失败函数
+           error: function (res) {
+               lay.msg("服务器接口异常!", {icon:5})
+           }
+       })
+
+   })
+
+
+</script>

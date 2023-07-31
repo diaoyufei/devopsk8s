@@ -1,0 +1,162 @@
+{% extends 'base.html' %}
+{% block title %}Deployments{% endblock %}
+{% block nav-item-2 %}layui-nav-itemed{% endblock %}
+{% block nav-this-2-1 %}layui-this{% endblock %}
+{% block content %}
+<div class="layui-card">
+    <div class="layui-card-body">
+
+        <div class="layui-row">
+            <div class="layui-col-md12">
+                <a href="{% url 'deployment_create' %}" class="layui-btn" style="float: left">创建</a>
+                <input type="text" name="name" class="layui-input" style="width: 150px;float: left;margin-left: 20px">
+                <button class="layui-btn" style="float: left" id="searchBtn">搜索</button>
+            </div>
+        </div>
+        <div class="layui-col-md12">
+            <table class="layui-hide" id="test" lay-filter="test"></table>
+            <script type="text/html" id="barDemo">
+              <a class="layui-btn layui-btn-xs layui-btn-primary" lay-event="yaml">YAML</a>
+              <a class="layui-btn layui-btn-xs" lay-event="details">详情</a>
+              <a class="layui-btn layui-btn-xs" lay-event="scale">扩容/缩容</a>
+              <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">删除</a>
+            </script>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+
+{#获取当前命名空间#}
+var storage = window.sessionStorage;
+var namespace = storage.getItem("namespace");
+
+layui.use('table', function(){
+  var table = layui.table;
+  var $ = layui.jquery
+
+  // 创建渲染实例
+  table.render({
+    elem: '#test'
+    ,url:'{% url 'deployment_api' %}?namespace=' + namespace // 此处为静态模拟数据，实际使用时需换成真实接口
+    ,toolbar: '#toolbarDemo'
+    ,defaultToolbar: ['filter', 'exports', 'print', {
+      title: '提示'
+      ,layEvent: 'LAYTABLE_TIPS'
+      ,icon: 'layui-icon-tips'
+    }]
+    ,title: '用户数据表'
+    ,cols: [[
+      {field:'name', title:'名称', sort: true}
+      ,{field: 'namespace', title: '命名空间'}
+      ,{field: 'replicas', title: '预期副本数'}
+      ,{field: 'available_replicas', title: '可用副本数'}
+      ,{field: 'labels', title: '标签', templet: labelsFormat}
+      ,{field: 'selector', title: 'Pod标签选择器', templet: labelsFormat}
+      ,{field: 'images', title: '镜像/状态'}
+      ,{field:'create_time', title:'创建时间'}
+      ,{fixed:'right', title:'操作', toolbar: '#barDemo', width: 250}
+    ]]
+    ,page: true
+    ,id: 'dptb'
+  });
+
+    // 标签格式化，是一个对象
+    function labelsFormat(d){
+      result = "";
+      if (d.labels == null){
+          return "None"
+      } else {
+          for (let key in d.labels) {
+              result += '<span style="border: 1px solid #d6e5ec;border-radius: 8px">' +
+                  key + ':' + d.labels[key] +
+                  '</span><br>'
+          }
+          return result
+      }
+    }
+
+  //监听工具事件
+  table.on('tool(test)', function(obj){ // 双击 toolDouble
+    var data = obj.data;
+    //console.log(obj)
+    if(obj.event === 'del'){
+      layer.confirm('真的删除' + data["name"] + "这个Deployment吗?", function(index){
+          csrf_token = $('[name="csrfmiddlewaretoken"]').val();
+        $.ajax({
+            url: '{% url 'deployment_api' %}',
+            type: "DELETE",
+            data: data,
+            headers: {"X-CSRFToken": csrf_token},
+            success: function (res) {
+                if (res.code == 0) {
+                    layer.msg(res.msg, {icon: 6});
+                    obj.del()
+                }  else {
+                    layer.msg(res.msg, {icon: 5})
+                }
+            },
+            error: function () {
+                layer.msg("服务接口异常", {icon: 5})
+            }
+        })
+      });
+    } else if(obj.event === 'yaml'){
+        layer.open({
+            type: 2,
+            area: ['50%', '60%'],
+            content: "{% url 'ace_editor' %}?resource=deployment&" + 'namespace=' + data['namespace'] + '&name=' + data['name'],
+        })
+    } else if(obj.event === 'scale'){
+        layer.prompt({
+            formType: 0
+            ,title: "扩容/缩容"
+            ,value: data.replicas  // 默认值，从当前字段获取
+        }, function (value, index) {
+            csrf_token = $('[name="csrfmiddlewaretoken"]').val();
+            data['replicas']= value;           // value是表单输入的值，重置值
+            $.ajax({
+                url: '{% url "deployment_api" %}',
+                type: "PUT",
+                data: data,
+                headers: {"X-CSRFToken": csrf_token},
+                success: function (res) {
+                    if(res.code == '0'){
+                        layer.msg(res.msg,{icon:6});  //2秒关闭(如果不配置，默认是3秒)
+                        // 更新当前页面字段值
+                        obj.update({
+                            replicas: value
+                        })
+                    } else {
+                        layer.msg(res.msg, {icon:5})
+                    }
+                }
+            });
+            layer.close(index);       //关闭弹窗
+        });
+    } else if(obj.event === 'details') {
+        window.location.href = "{% url "deployment_details" %}?namespace=" + data["namespace"] + "&name=" + data["name"]
+    }
+  });
+    // 监听搜索按钮事件
+
+    $("#searchBtn").click(function () {
+        var search_key = $("input[name='name']").val()
+        {#console.log(search_key)#}
+        // 重载 - 这里以搜索为例
+        table.reload('dptb', {
+          where: { //设定异步数据接口的额外参数，任意设
+            search_key: search_key
+          }
+          ,page: {
+            curr: 1 //重新从第 1 页开始
+          }
+        });
+    })
+
+});
+</script>
+
+{% endblock %}

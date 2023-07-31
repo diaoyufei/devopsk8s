@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <title>{% block title %}{% endblock %}</title>
+  <link rel="stylesheet" href="/static/layui/css/layui.css">
+  <style>
+      .namespace{
+          margin-top: 10px;
+      }
+      .namespace select, .namespace option {
+          width: 150px;
+          height: 40px;
+          font-size: 22px;
+          color: #2F4056;
+      }
+      .layui-table-cell {
+          height: 100%;
+      }
+  </style>
+</head>
+<body class="layui-layout-body">
+{% csrf_token %}
+<div class="layui-layout layui-layout-admin">
+  <div class="layui-header layui-bg-cyan">
+    <div class="layui-logo" style="color: white; font-size: 26px; font-weight: bold">K8s管理平台</div>
+    <!-- 头部区域（可配合layui 已有的水平导航） -->
+    <ul class="layui-nav layui-layout-left">
+      <!-- 移动端显示 -->
+      <li class="layui-nav-item layui-show-xs-inline-block layui-hide-sm" lay-header-event="menuLeft">
+        <i class="layui-icon layui-icon-spread-left"></i>
+      </li>
+        <div class="namespace">
+            <select name="namespace" id="nsSelect">
+            </select>
+        </div>
+    </ul>
+    <ul class="layui-nav layui-layout-right">
+      <li class="layui-nav-item"><a href="/logout">注销</a></li>
+    </ul>
+  </div>
+
+  <div class="layui-side layui-bg-black">
+    <div class="layui-side-scroll layui-bg-cyan">
+      <!-- 左侧导航区域（可配合layui已有的垂直导航） -->
+      <ul class="layui-nav layui-nav-tree layui-bg-cyan" lay-filter="test">
+        <li class="layui-nav-item layui-nav-itemed">
+          <li class="layui-nav-item"><a href="/">平台概述</a></li>
+        <li class="layui-nav-item {% block nav-item-1 %}{% endblock %}">
+            <a href="javascript:;">Kubernetes</a>
+          <dl class="layui-nav-child">
+            <dd><a href="{% url 'node' %}" class="{% block nav-this-1-1 %}{% endblock %}">Nodes</a></dd>
+            <dd><a href="{% url 'namespace' %}" class="{% block nav-this-1-2 %}{% endblock %}">Namespaces</a></dd>
+            <dd><a href="{% url 'pv' %}" class="{% block nav-this-1-3 %}{% endblock %}">PersistentVolumes</a></dd>
+          </dl>
+        </li>
+        <li class="layui-nav-item {% block nav-item-2 %}{% endblock %}">
+          <a href="javascript:;">工作负载</a>
+          <dl class="layui-nav-child">
+            <dd><a href="{% url 'deployment' %}" class="{% block nav-this-2-1 %}{% endblock %}">Deployments</a></dd>
+            <dd><a href="{% url 'daemonset' %}" class="{% block nav-this-2-2 %}{% endblock %}">DaemonSets</a></dd>
+            <dd><a href="{% url 'statefulset' %}" class="{% block nav-this-2-3 %}{% endblock %}">Statefulset</a></dd>
+            <dd><a href="{% url 'pod' %}" class="{% block nav-this-2-4 %}{% endblock %}">Pods</a></dd>
+          </dl>
+        </li>
+        <li class="layui-nav-item {% block nav-item-3 %}{% endblock %}">
+          <a href="javascript:;">负载均衡</a>
+          <dl class="layui-nav-child">
+            <dd><a href="{% url 'service' %}" class="{% block nav-this-3-1 %}{% endblock %}">Services</a></dd>
+            <dd><a href="{% url 'ingress' %}" class="{% block nav-this-3-2 %}{% endblock %}">Ingressed</a></dd>
+            <dd><a href="javascript:;">StatefulSets</a></dd>
+          </dl>
+        </li>
+        <li class="layui-nav-item {% block nav-item-4 %}{% endblock %}">
+          <a href="javascript:;">存储与配置</a>
+          <dl class="layui-nav-child">
+            <dd><a href="{% url 'pvc' %}" class="{% block nav-this-4-1 %}{% endblock %}">PersistentVolumeClaims</a></dd>
+            <dd><a href="{% url 'configmap' %}" class="{% block nav-this-4-2 %}{% endblock %}">ConfigMaps</a></dd>
+            <dd><a href="{% url 'secret' %}" class="{% block nav-this-4-3 %}{% endblock %}">Secrets</a></dd>
+          </dl>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="layui-body" style="background-color: #edeff0">
+    <!-- 内容主体区域 -->
+    <div style="padding: 15px;">
+        {% block content %}{% endblock %}
+    </div>
+  </div>
+
+  <div class="layui-footer">
+    <!-- 底部固定区域 -->
+    www.ctnrs.com
+  </div>
+</div>
+<script src="/static/layui/layui.js"></script>
+{% block js %}{% endblock %}
+<script>
+//JS
+layui.use(['element','layer'], function(){
+  var element = layui.element;
+  var $ = layui.jquery;
+  var layer = layui.layer
+
+  $.ajax({
+      type: "GET",
+      url: "{% url 'namespace_api' %}",
+      timeout: 5000,
+      async: false,
+      success: function (res) {
+          {#console.log(res)#}
+          if(res.code == 0) {
+              for (let index in res.data) {
+                  row = res.data[index]
+                  $("#nsSelect").append('<option value=' + row.name + '>' + row.name + '</option>')
+              }
+    // default namespace
+              $("#nsSelect").val("default")
+          } else {
+              $("#nsSelect").append('<option value="default">default</option>');
+              $("#nsSelect").attr("disabled", "disabled")
+          }
+      },
+      error: function () {
+          layer.msg("service connect failed!", {icon: 5})
+      }
+  });
+    {#console.log($("#nsSelect").val())#}
+    // storage namespace to session
+    var storage = window.sessionStorage;
+    var namespace = storage.getItem("namespace");
+    var current_ns = $("#nsSelect").val();
+    if (namespace == null) {
+        storage.setItem('namespace', current_ns)
+    }  else {
+        $("#nsSelect").val(namespace)
+    }
+
+    $('#nsSelect').change(function () {
+        var current_ns = $("#nsSelect").val();
+        storage.setItem('namespace', current_ns);
+        location.reload()
+        {#var namespace = storage.getItem("namespace");#}
+        {#console.log(namespace)#}
+    });
+
+});
+</script>
+</body>
+</html>

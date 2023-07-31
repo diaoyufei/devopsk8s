@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+{% block title %}Ingresses{% endblock %}
+{% block nav-item-3 %}layui-nav-itemed{% endblock %}
+{% block nav-this-3-2 %}layui-this{% endblock %}
+{% block content %}
+<div class="layui-card">
+    <div class="layui-card-body">
+
+        <div class="layui-row">
+            <div class="layui-col-md12">
+                <button class="layui-btn" style="float: left">创建</button>
+                <input type="text" name="name" class="layui-input" style="width: 150px;float: left;margin-left: 20px">
+                <button class="layui-btn" style="float: left" id="searchBtn">搜索</button>
+            </div>
+        </div>
+        <div class="layui-col-md12">
+            <table class="layui-hide" id="test" lay-filter="test"></table>
+            <script type="text/html" id="barDemo">
+              <a class="layui-btn layui-btn-xs layui-btn-primary" lay-event="yaml">YAML</a>
+              <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">删除</a>
+            </script>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+
+{#获取当前命名空间#}
+var storage = window.sessionStorage;
+var namespace = storage.getItem("namespace");
+
+layui.use('table', function(){
+  var table = layui.table;
+  var $ = layui.jquery
+
+  // 创建渲染实例
+  table.render({
+    elem: '#test'
+    ,url:'{% url 'ingress_api' %}?namespace=' + namespace // 此处为静态模拟数据，实际使用时需换成真实接口
+    ,toolbar: '#toolbarDemo'
+    ,defaultToolbar: ['filter', 'exports', 'print', {
+      title: '提示'
+      ,layEvent: 'LAYTABLE_TIPS'
+      ,icon: 'layui-icon-tips'
+    }]
+    ,cols: [[
+      {field:'name', title:'名称', sort: true, width: 300}
+      ,{field: 'namespace', title: '命名空间', width: 200, sort: true}
+      ,{field: 'http_hosts', title: 'HTTP', templet: httpFormat}
+      ,{field: 'https_hosts', title: 'HTTPS', templet: httpsFormat}
+      ,{field: 'service', title: '关联 Service', templet: serviceFormat}
+      ,{field:'create_time', title:'创建时间', width: 200}
+      ,{fixed:'right', title:'操作', toolbar: '#barDemo', width: 150}
+    ]]
+    ,page: true
+    ,id: 'ingtb'
+  });
+
+    // 标签格式化，是一个对象
+    function httpFormat(d) {
+            return "域名: " + d.http_hosts.host + '<br>' + "路径: " + d.http_hosts.path + '<br>';
+        }
+
+    function httpsFormat(d) {
+        if (d.https_hosts != null){
+            return "域名: " + d.https_hosts.host + '<br>' + "证书Secret名称: " + d.https_hosts.secret_name + '<br>';
+        } else {
+            return "None"
+        }
+    }
+
+    function serviceFormat(d) {
+        return "名称: " + d.http_hosts.service_name + '<br>' + "端口: " + d.http_hosts.service_port + '<br>';
+
+    }
+
+  //监听工具事件
+  table.on('tool(test)', function(obj){ // 双击 toolDouble
+    var data = obj.data;
+    //console.log(obj)
+    if(obj.event === 'del'){
+      layer.confirm('真的删除' + data["name"] + "这个ingress吗?", function(index){
+          csrf_token = $('[name="csrfmiddlewaretoken"]').val();
+        $.ajax({
+            url: '{% url 'ingress_api' %}',
+            type: "DELETE",
+            data: data,
+            headers: {"X-CSRFToken": csrf_token},
+            success: function (res) {
+                if (res.code == 0) {
+                    layer.msg(res.msg, {icon: 6});
+                    obj.del()
+                }  else {
+                    layer.msg(res.msg, {icon: 5})
+                }
+            },
+            error: function () {
+                layer.msg("服务接口异常", {icon: 5})
+            }
+        })
+      });
+    } else if(obj.event === 'yaml'){
+        layer.open({
+            title: 'YAML',
+            type: 2,
+            area: ['50%', '60%'],
+            content: "{% url 'ace_editor' %}?resource=ingress&" + 'namespace=' + data['namespace'] + '&name=' + data['name'],
+        })
+    }
+  });
+    // 监听搜索按钮事件
+
+    $("#searchBtn").click(function () {
+        var search_key = $("input[name='name']").val()
+        {#console.log(search_key)#}
+        // 重载 - 这里以搜索为例
+        table.reload('ingtb', {
+          where: { //设定异步数据接口的额外参数，任意设
+            search_key: search_key
+          }
+          ,page: {
+            curr: 1 //重新从第 1 页开始
+          }
+        });
+    })
+
+});
+</script>
+
+{% endblock %}

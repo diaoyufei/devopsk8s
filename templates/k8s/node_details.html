@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+{% block title %}节点{% endblock %}
+{% block nav-item-1 %}layui-nav-itemed{% endblock %}
+{% block nav-this-1-1 %}layui-this{% endblock %}
+{% block content %}
+    <span class="layui-breadcrumb">
+      <a href="#">首页</a>
+      <a href="#">Kubernetes</a>
+      <a href="#">Nodes</a>
+      <a><cite>节点详情</cite></a>
+    </span>
+    <hr>
+
+    <div class="layui-col-md12 layui-col-space10">
+        <div class="layui-col-md6">
+            <div class="layui-card">
+                <div class="layui-card-header">节点资源</div>
+                <div class="layui-card-body">
+                    CPU:
+                    <span class="layui-badge layui-bg-orange"> 已分配 {{ node_resouces.cpu_requests }} 核</span>
+                    <span class="layui-badge layui-bg-gray"></span>
+                    <span class="layui-badge layui-bg-green">可分配 {{ node_resouces.allocatable_cpu }} 核</span>
+                    <span class="layui-badge layui-bg-gray"></span>
+                    <span class="layui-badge layui-bg-blue">总量 {{ node_resouces.capacity_cpu }} 核</span>
+                    <hr class="layui-bg-gray">
+                    内存:
+                    <span class="layui-badge layui-bg-orange">已分配 {{ node_resouces.memory_requests }} G</span>
+                    <span class="layui-badge layui-bg-gray"></span>
+                    <span class="layui-badge layui-bg-green">可分配 {{ node_resouces.allocatable_memory }} G</span>
+                    <span class="layui-badge layui-bg-gray"></span>
+                    <span class="layui-badge layui-bg-blue">总量 {{ node_resouces.capacity_memory }} G</span>
+                    <hr>
+                    短暂存储:
+                    <span class="layui-badge layui-bg-green">可分配 {{ node_resouces.allocatable_ephemeral_storage }} G</span>
+                    <span class="layui-badge layui-bg-gray"></span>
+                    <span class="layui-badge layui-bg-blue">总量 {{ node_resouces.capacity_ephemeral_storage }} G</span>
+                    <hr class="layui-bg-gray">
+                    Pod数量:
+                    <span class="layui-badge layui-bg-green">已创建 {{ node_resouces.pods_number }} 个</span>
+                    <span class="layui-badge layui-bg-gray"></span>
+                    <span class="layui-badge layui-bg-blue">总量 {{ node_resouces.capacity_pods }} 个</span>
+                    <hr class="layui-bg-gray">
+                </div>
+            </div>
+        </div>
+        <div class="layui-col-md6">
+            <div class="layui-card">
+                <div class="layui-card-header">节点信息</div>
+                <div class="layui-card-body">
+                    节点名称: {{ node_info.node_name }}
+                    <hr class="layui-bg-gray">
+                    主机名: {{ node_info.hostname }}
+                    <hr class="layui-bg-gray">
+                    内部IP: {{ node_info.internal_ip }}
+                    <hr class="layui-bg-gray">
+                    Pod网络: {{ node_info.pod_cidr }}
+                    <hr class="layui-bg-gray">
+                    操作系统: {{ node_info.os }}
+                    <hr class="layui-bg-gray">
+                    内核: {{ node_info.kernel }}
+                    <hr class="layui-bg-gray">
+                    CPU架构: {{ node_info.cpu_arch }}
+                    <hr class="layui-bg-gray">
+                    容器引擎: {{ node_info.container_runtime_version }}
+                    <hr class="layui-bg-gray">
+                    kubelet版本: {{ node_info.kubelet_version }}
+                    <hr class="layui-bg-gray">
+                    kube-proxy版本: {{ node_info.kube_proxy_version }}
+                    <hr class="layui-bg-gray">
+                    不可调度: {{ node_info.unschedulable }}
+                    <hr class="layui-bg-gray">
+                    标签:
+                    {% for k,v in node_info.labels.items %}
+                    <span style='border: 1px solid #d6e5ec;border-radius: 20px;padding: 1px 6px 1px 6px'>{{ k }}:{{ v }}</span>
+                    {% endfor %}
+                    <hr class="layui-bg-gray">
+                    污点:
+                    {% if node_info.taints %}
+                        {% for i in node_info.taints %}
+                           <span style='border: 1px solid #d6e5ec;border-radius: 20px;padding: 1px 6px 1px 6px'>{{ i.key }}={{ i.value }}[{{ i.effect }}</span>
+                        {% endfor %}
+                    {% else %}
+                        None
+                    {% endif %}
+                    <hr class="layui-bg-gray">
+
+                </div>
+            </div>
+        </div>
+        <div class="layui-col-md12">
+            <div class="layui-card">
+                <div class="layui-card-header">容器信息</div>
+                <div class="layui-card-body">
+                    <table class="layui-hide" id="test" lay-filter="test"></table>
+                </div>
+            </div>
+        </div>
+
+
+    </div>
+
+{% endblock %}
+
+{% block js %}
+<script>
+layui.use('table', function(){
+  var table = layui.table;
+  var $ = layui.jquery
+
+  // 创建渲染实例
+  table.render({
+    elem: '#test'
+    ,url:'{% url 'node_details_pod_list' %}?node_name=' + '{{ node_name }}' // 此处为静态模拟数据，实际使用时需换成真实接口
+    ,toolbar: '#toolbarDemo'
+    ,defaultToolbar: ['filter', 'exports', 'print', {
+      title: '提示'
+      ,layEvent: 'LAYTABLE_TIPS'
+      ,icon: 'layui-icon-tips'
+    }]
+    ,cols: [[
+      {field: 'pod_name', title:'Pod名称', sort: true}
+      ,{field: 'namespace', title:'命名空间', sort: true}
+      ,{field: 'status', title: '运行状态', sort: true}
+      ,{field: 'pod_ip', title: 'Pod IP'}
+      ,{field: 'cpu_requests', title: 'CPU请求', sort: true}
+      ,{field: 'cpu_limits', title: 'CPU限制', sort: true}
+      ,{field: 'memory_requests', title: '内存请求', sort: true}
+      ,{field: 'memory_limits', title: '内存限制', sort: true}
+      ,{field: 'create_time', title: '创建时间'}
+    ]]
+    ,page: true
+  });
+
+});
+</script>
+
+{% endblock %}

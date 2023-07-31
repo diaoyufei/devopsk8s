@@ -1,0 +1,243 @@
+{% extends 'base.html' %}
+{% block title %}首页{% endblock %}
+
+{% block content %}
+    <style>
+        .dashboard-ns {
+            width: 130px;
+            height: 50px;
+            border: 1px solid #ebeef5;
+            border-radius: 5px;
+            box-shadow: 0 1px 0 #c2c2c2;
+            text-align: center;
+            line-height: 50px;
+            font-size: 18px;
+            color: #2F4056;
+            margin: 5px;
+            float: left;
+            overflow: hidden;   /* 溢出自动隐藏 */
+            text-overflow: ellipsis;   /* 溢出省略号 */
+            white-space: nowrap;   /* nowrap: 规定段落中的文本不进行换行， 与上面配合使用 */
+        }
+        .chart {
+            width: 250px;
+            height: 200px;
+            float: left;
+            margin-left: 10%;
+        }
+        .node {
+            border: 1px solid #ebeef5;
+            border-radius: 5px;
+            box-shadow: 0 1px 1px 0 #c2c2c2;
+            height: 180px;
+            width: 380px;
+            float: left;
+            margin: 6px;
+        }
+        .node:hover {
+            box-shadow: 0 2px 2px 0 #c2c2c2;
+            cursor: pointer;
+        }
+        .pv {
+            border: 1px solid #ebeef5;
+            border-radius: 5px;
+            box-shadow: 0 1px 1px 0 #c2c2c2;
+            height: 150px;
+            width: 360px;
+            float: left;
+            margin: 6px;
+        }
+        .pv-notice {
+            background-color: #f4f4f5;
+            color: #909399;
+            padding: 5px;
+            margin-left: 30%;
+            font-size: 16px;
+        }
+        /* 背景 */
+        .layui-badge {
+            font-size: 14px;
+            padding: 1px;
+        }
+    </style>
+    <div class="layui-col-md12 layui-col-space10">
+         <div class="layui-col-md12 layui-col-space10">
+             <div class="layui-col-md6">
+                 <div class="layui-card">
+                     <div class="layui-card-header">命名空间</div>
+                     <div class="layui-card-body" style="height: 400px;overflow: auto" id="dashboard-ns">
+
+                     </div>
+                 </div>
+             </div>
+             <div class="layui-col-md6">
+                 <div class="layui-card">
+                     <div class="layui-card-header">计算资源</div>
+                     <div class="layui-card-body" style="height: 400px; overflow: auto">
+                         <div id="chart1" class="chart"></div>
+                         <div id="chart2" class="chart"></div>
+                         <div id="chart3" class="chart"></div>
+                         <div id="chart4" class="chart"></div>
+{#                         {{ node_resource }}#}
+                     </div>
+                 </div>
+             </div>
+         </div>
+         <div class="layui-col-md12 layui-col-space10">
+             <div class="layui-col-md6">
+                 <div class="layui-card">
+                     <div class="layui-card-header">存储资源</div>
+                     <div class="layui-card-body" style="height: 400px;overflow: auto">
+                         {% if pv_list %}
+                           {% for pv in pv_list %}
+                               <div class="pv">
+                                   <div class="layui-card-header">{{ pv.pv_name }}</div>
+                                   <div class="layui-card-body" style="line-height: 30px">
+                                       卷申请：
+                                     <span class="layui-badge layui-bg-orange">{{ pv.claim }}</span><br>
+                                       容量状态：
+                                     <span class="layui-badge layui-bg-green">{{ pv.capacity }}</span>
+                                       <span class="layui-badge layui-bg-gray"></span>
+                                     <span class="layui-badge layui-bg-green">{{ pv.status }}</span><br>
+                                       创建时间：
+                                     <span class="layui-badge layui-bg-blue">{{ pv.create_time }}</span>
+                                   </div>
+                               </div>
+                           {% endfor %}
+                         {% else %}
+                             <span class="pv-notice">此处显示PV资源，但是您目前并未创建! </span>
+                         {% endif %}
+                     </div>
+                 </div>
+             </div>
+             <div class="layui-col-md6">
+                 <div class="layui-card">
+                     <div class="layui-card-header">节点状态</div>
+                     <div class="layui-card-body" style="height: 400px; overflow: auto;">
+                         {% for k,v in node_resource.items %}
+                         <a href="{% url "node_details" %}?node_name={{ k }}">
+                         <div class="node">
+                             <div class="layui-card-header">{{ k }}</div>
+                             <div class="layui-card-body" style="line-height: 30px">
+                               CPU:
+                               <span class="layui-badge layui-bg-orange"> 已分配 {{ v.cpu_requests }} 核</span>
+                               <span class="layui-badge layui-bg-gray"></span>
+                               <span class="layui-badge layui-bg-green"> 可分配 {{ v.allocatable_cpu }} 核</span>
+                               <span class="layui-badge layui-bg-gray"></span>
+                               <span class="layui-badge layui-bg-blue">总量 {{ v.capacity_cpu }} 核</span><br>
+                               内存：
+                               <span class="layui-badge layui-bg-orange">已分配 {{ v.memory_request }} G</span>
+                               <span class="layui-badge layui-bg-gray"></span>
+                               <span class="layui-badge layui-bg-green">可分配 {{ v.allocatable_memory }} G</span>
+                               <span class="layui-badge layui-bg-gray"></span>
+                               <span class="layui-badge layui-bg-blue">总量 {{ v.capacity_memory }} G</span><br>
+                               短暂存储：
+                               <span class="layui-badge layui-bg-green">可分配 {{ v.allocatable_ephemeral_storage }} G</span>
+                               <span class="layui-badge layui-bg-gray"></span>
+                               <span class="layui-badge layui-bg-blue">总量 {{ v.capacity_ephemeral_storage }}</span><br>
+                               Pod数量：
+                               <span class="layui-badge layui-bg-green">已创建 {{ v.pods_number }} 个</span>
+                               <span class="layui-badge layui-bg-gray"></span>
+                               <span class="layui-badge layui-bg-blue">总量 {{ v.capacity_pods }} 个</span><br>
+                             </div>
+                         </div>
+                         </a>
+                         {% endfor %}
+                     </div>
+                 </div>
+             </div>
+         </div>
+    </div>
+{% endblock %}
+
+{% block js %}
+<script src="/static/js/echarts.min.js"></script>
+<script src="/static/js/node-chart-index.js"></script>
+
+<script>
+
+layui.use('table', function () {
+    var table = layui.table;
+    var $ = layui.jquery;
+
+      $.ajax({
+          type: "GET",
+          url: "{% url 'namespace_api' %}",
+          timeout: 5000,
+          async: false,
+          success: function (res) {
+              if(res.code == 0) {
+                  // 动态追加到列表选项
+                  for(let index in res.data) {
+                      row = res.data[index];
+                      $("#dashboard-ns").append('<div class="dashboard-ns">' + row.name + '</div>')
+                  }
+              }  else if (res.code == 1) {
+                  $("#dashboard-ns").append('<span class="pv-notice">' + res.msg + '</span>?')
+              }
+          },
+          error: function (res) {
+              $("#dashboard-ns").append('< class="pv-notice">获取命名空间列表失败!<br>请检查K8s集群地址或者服务器网络.</span>')
+          }
+      });
+
+      $.ajax({
+          url: "{% url "node_resource" %}",
+          type: 'GET',
+          dataType: 'JSON',
+          success: function (res) {
+              var allocatable_cpu = 0;  // 允许分配
+              var allocatable_memory = 0;
+              var cpu_requests = 0;  // 已分配
+              var memory_request = 0;
+              var schedulable_ok = 0;
+              var shcedulable_no = 0;
+              var status_ok = 0;
+              var status_no = 0;
+              for(key in res){
+                  allocatable_cpu += res[key]["allocatable_cpu"];
+                  allocatable_memory += res[key]["allocatable_memory"];
+                  cpu_requests += res[key]["cpu_requests"];
+                  memory_request += res[key]["memory_requests"];
+                  if (res[key]["schedulable"]) {                       // 布尔值判断，值是null或者true
+                      shcedulable_no += 1
+                  } else {
+                      schedulable_ok += 1
+                  }
+
+                  if (res[key]["status"]) {
+                      status_ok += 1
+                  } else {
+                      status_no += 1
+                  }
+              }
+              cpu_percent = 100 * cpu_requests / allocatable_cpu;
+              memory_percent = 100 * memory_request / allocatable_memory;
+              node_total = (status_ok + status_no);
+              status_percent = 100 * status_ok / node_total;
+              schedulable_percent = 100 * schedulable_ok / node_total;
+              // Node就绪
+              option1.series[0].data[0].name = "Node状态: 准备就绪 " + status_ok + " 台/总数" + node_total + "台";
+              option1.series[0].data[0].value = status_percent.toFixed(1);
+              myChart1.setOption(option1, true);
+              {#console.log(status_percent.toFixed(1))#}
+              // Node可调度
+              option2.series[0].data[0].name = "Node调度: 可调度 " + schedulable_ok + " 台/总数" + node_total + " 台";
+              option2.series[0].data[0].value = schedulable_percent.toFixed(1);
+              myChart2.setOption(option2, true);
+              // CPU
+              option3.series[0].data[0].name = "CPU使用: 已分配" + cpu_requests.toFixed(1) + " 核/可分配" + allocatable_cpu.toFixed(1) + "核";
+              option3.series[0].data[0].value = cpu_percent.toFixed(1);
+              myChart3.setOption(option3, true)
+              // 内存
+              option4.series[0].data[0].name = "内存使用：已分配 " + memory_request.toFixed(1) + " G/可分配" + allocatable_memory.toFixed(1) + "G";
+              option4.series[0].data[0].value = memory_percent.toFixed(1);
+              myChart4.setOption(option4, true)
+          }
+      });
+
+});
+
+</script>
+
+{% endblock %}

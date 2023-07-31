@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+{% block title %}节点{% endblock %}
+{% block nav-item-1 %}layui-nav-itemed{% endblock %}
+{% block nav-this-1-1 %}layui-this{% endblock %}
+{% block content %}
+<div class="layui-card">
+    <div class="layui-card-body">
+
+        <div class="layui-row">
+            <div class="layui-col-md12">
+                <input type="text" name="name" class="layui-input" style="width: 150px;float: left">
+                <button class="layui-btn" style="float: left" id="searchBtn">搜索</button>
+            </div>
+        </div>
+        <div class="layui-col-md12">
+            <table class="layui-hide" id="test" lay-filter="test"></table>
+            <script type="text/html" id="barDemo">
+              <a class="layui-btn layui-btn-xs layui-btn-primary" lay-event="yaml">YAML</a>
+              <a class="layui-btn layui-btn-xs" lay-event="details">详情</a>
+            </script>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+layui.use('table', function(){
+  var table = layui.table;
+  var $ = layui.jquery
+
+  // 创建渲染实例
+  table.render({
+    elem: '#test'
+    ,url:'{% url 'node_api' %}' // 此处为静态模拟数据，实际使用时需换成真实接口
+    ,toolbar: '#toolbarDemo'
+    ,defaultToolbar: ['filter', 'exports', 'print', {
+      title: '提示'
+      ,layEvent: 'LAYTABLE_TIPS'
+      ,icon: 'layui-icon-tips'
+    }]
+    ,title: '用户数据表'
+    ,cols: [[
+      {field:'name', title:'名称', sort: true}
+      ,{field:'labels', title:'标签', templet: labelsFormat}
+      ,{field: 'scheduler', title: '可调度'}
+      ,{field: 'cpu', title: 'CPU'}
+      ,{field: 'memory', title: '内存'}
+      ,{field: 'kubelet_version', title: 'kubelet版本'}
+      ,{field: 'cri_version', title: 'CRI版本'}
+      ,{field:'create_time', title:'创建时间'}
+      ,{fixed:'right', title:'操作', toolbar: '#barDemo', width: 150}
+    ]]
+    ,page: true
+    ,id: 'ntb'
+  });
+
+    // 标签格式化，是一个对象
+    function labelsFormat(d){
+      result = "";
+      if (d.labels == null){
+          return "None"
+      } else {
+          for (let key in d.labels) {
+              result += '<span style="border: 1px solid #d6e5ec;border-radius: 8px">' +
+                  key + ':' + d.labels[key] +
+                  '</span><br>'
+          }
+          return result
+      }
+    }
+
+  //监听工具事件
+  table.on('tool(test)', function(obj){ // 双击 toolDouble
+    var data = obj.data;
+    //console.log(obj)
+    if(obj.event === 'details'){
+        window.location.href = "{% url 'node_details' %}?node_name=" + data["name"]
+
+    } else if(obj.event === 'yaml'){
+        layer.open({
+            title: 'YAML',
+            type: 2,
+            area: ['50%', '60%'],
+            content: "{% url 'ace_editor' %}?resource=node&" + 'namespace=' + data['namespace'] + '&name=' + data['name'],
+        })
+    }
+  });
+    // 监听搜索按钮事件
+
+    $("#searchBtn").click(function () {
+        var search_key = $("input[name='name']").val()
+        {#console.log(search_key)#}
+        // 重载 - 这里以搜索为例
+        table.reload('ntb', {
+          where: { //设定异步数据接口的额外参数，任意设
+            search_key: search_key
+          }
+          ,page: {
+            curr: 1 //重新从第 1 页开始
+          }
+        });
+    })
+
+});
+</script>
+
+{% endblock %}
